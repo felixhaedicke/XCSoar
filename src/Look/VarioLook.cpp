@@ -50,6 +50,9 @@ VarioLook::Initialise(bool _inverse, bool _colors,
     lift_color = Color(0x19,0x94,0x03);
   }
 
+  const unsigned digit_font_height = Layout::FontScale(8);
+  digit_font.Load(FontDescription(digit_font_height, true, false, false));
+
   sink_brush.Create(sink_color);
   lift_brush.Create(lift_color);
 
@@ -57,9 +60,9 @@ VarioLook::Initialise(bool _inverse, bool _colors,
   thick_sink_pen.Create(Layout::Scale(5), sink_color);
   thick_lift_pen.Create(Layout::Scale(5), lift_color);
 
-  background_bitmap.Load(Units::GetUserVerticalSpeedUnit() == Unit::KNOTS
+  /*background_bitmap.Load(Units::GetUserVerticalSpeedUnit() == Unit::KNOTS
                          ? IDB_VARIOSCALEC : IDB_VARIOSCALEA);
-  background_x = inverse ? 58 : 0;
+  background_x = inverse ? 58 : 0;*/
 
   climb_bitmap.Load(inverse ? IDB_CLIMBSMALLINV : IDB_CLIMBSMALL);
 

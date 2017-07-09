@@ -37,14 +37,16 @@ struct VarioLook {
 
   Color background_color, text_color, dimmed_text_color;
 
+  Font digit_font;
+
   Color sink_color, lift_color;
 
   Brush sink_brush, lift_brush;
 
   Pen thick_background_pen, thick_sink_pen, thick_lift_pen;
 
-  Bitmap background_bitmap;
-  unsigned background_x;
+  /*Bitmap background_bitmap;
+  unsigned background_x;*/
 
   Bitmap climb_bitmap;
 

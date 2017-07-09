@@ -23,6 +23,7 @@ Copyright_License {
 
 #include "Gauge/GaugeVario.hpp"
 #include "Look/VarioLook.hpp"
+#include "Math/Angle.hpp"
 #include "Screen/Canvas.hpp"
 #include "Screen/Layout.hpp"
 #include "Renderer/UnitSymbolRenderer.hpp"
@@ -73,9 +74,10 @@ GaugeVario::OnPaintBuffer(Canvas &canvas)
     bottom_position.y = middle_position.y + value_height;
     bottom_position.x = rc.right;
 
-    canvas.Stretch(rc.left, rc.top, width, height,
+    canvas.Clear((look.inverse) ? COLOR_BLACK : COLOR_WHITE);
+    /*canvas.Stretch(rc.left, rc.top, width, height,
                    look.background_bitmap,
-                   look.background_x, 0, 58, 120);
+                   look.background_x, 0, 58, 120);*/
 
     layout_initialised = true;
   }
@@ -227,12 +229,44 @@ void
 GaugeVario::RenderZero(Canvas &canvas)
 {
   if (look.inverse)
-    canvas.SelectWhitePen();
+    canvas.Select(Pen(Layout::Scale(1), COLOR_WHITE));
   else
-    canvas.SelectBlackPen();
+    canvas.Select(Pen(Layout::Scale(2), COLOR_BLACK));
 
-  canvas.DrawLine(0, offset.y, Layout::Scale(17), offset.y);
-  canvas.DrawLine(0, offset.y + 1, Layout::Scale(17), offset.y + 1);
+  canvas.SelectHollowBrush();
+  auto arc_center = PixelPoint(offset.x + Layout::Scale(7), offset.y);
+  auto arc_radius = offset.x + Layout::Scale(2);
+  canvas.DrawSegment(arc_center, arc_radius, Angle::HalfCircle(), Angle::FullCircle());
+
+  canvas.DrawLine(0, offset.y, Layout::Scale(19), offset.y);
+
+  canvas.SetTextColor(look.text_color);
+  canvas.Select(look.digit_font);
+
+  TCHAR digit_text[] = { '0', 0 };
+  auto digit_size = canvas.CalcTextSize(digit_text);
+  for (unsigned i = 1; i < 6; ++i) {
+    int pos = ValueToNeedlePos(i);
+    const FastIntegerRotation r(Angle::Degrees(pos));
+    auto p1 = TransformRotatedPoint(r.Rotate(-offset.x + nlength1, 0),
+                                    offset);
+    auto p2 = TransformRotatedPoint(r.Rotate(-offset.x + nlength1  - Layout::Scale(4), 0),
+                                    offset);
+    canvas.DrawLine(p1, p2);
+    p1 = PixelPoint(p1.x, 2 * offset.y - p1.y);
+    p2 = PixelPoint(p2.x, 2 * offset.y - p2.y);
+    canvas.DrawLine(p1, p2);
+
+    if (i < 4) {
+      digit_text[0]++;
+
+      auto p3 = TransformRotatedPoint(r.Rotate(-offset.x + nlength1  - Layout::Scale(7), 0),
+                                      offset);
+      canvas.DrawText(p3.x - digit_size.cx / 2, p3.y - digit_size.cy / 2, digit_text);
+      p3 = PixelPoint(p3.x, 2 * offset.y - p3.y);
+      canvas.DrawText(p3.x - digit_size.cx / 2, p3.y - digit_size.cy / 2, digit_text);
+    }
+  }
 }
 
 int

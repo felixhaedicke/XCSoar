@@ -25,7 +25,7 @@ Copyright_License {
 #define XCSOAR_THREAD_NAME_HPP
 
 #ifdef HAVE_POSIX
-#ifdef __BIONIC__
+#if defined(__BIONIC__) || defined(MUSL)
 /* Bionic supports pthread_setname_np() since API level 9, but since
    we build with API level 8, we fall back to prctl(PR_SET_NAME) */
 #define HAVE_PR_SET_NAME

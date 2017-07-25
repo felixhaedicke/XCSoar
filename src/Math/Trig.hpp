@@ -34,7 +34,7 @@ gcc_const
 static inline std::pair<double, double>
 sin_cos(const double thetha)
 {
-#if defined(__GLIBC__) && defined(_GNU_SOURCE)
+#if (defined(__GLIBC__) && defined(_GNU_SOURCE)) || defined(MUSL)
   double s, c;
   sincos(thetha, &s, &c);
   return std::make_pair(s, c);

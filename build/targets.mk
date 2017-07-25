@@ -216,7 +216,7 @@ endif
 ifeq ($(TARGET),NEON)
   # Experimental target for generic ARMv7 with NEON on Linux
   override TARGET = UNIX
-  HOST_TRIPLET = arm-linux-gnueabihf
+  HOST_TRIPLET ?= arm-linux-gnueabihf
   TCPREFIX = $(HOST_TRIPLET)-
   ifeq ($(CLANG),n)
     TARGET_ARCH += -mcpu=cortex-a8

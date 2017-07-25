@@ -12,7 +12,7 @@
 /* #undef HAVE_ALIGNED_ACCESS_REQUIRED */
 
 /* Define to 1 if you have the <byteswap.h> header file. */
-#ifdef __GLIBC__
+#if defined(__GLIBC__) || defined(MUSL)
 #ifndef ZZIP_HAVE_BYTESWAP_H 
 #define ZZIP_HAVE_BYTESWAP_H  1 
 #endif

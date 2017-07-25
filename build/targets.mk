@@ -213,6 +213,8 @@ ifeq ($(TARGET),KOBO)
   TARGET_IS_KOBO = y
   MUSL = y
   HOST_TRIPLET = arm-unknown-linux-musleabihf
+  KOBO_TOOLCHAIN ?= $(HOME)/x-tools/$(HOST_TRIPLET)
+  TCPREFIX = $(KOBO_TOOLCHAIN)/bin/$(HOST_TRIPLET)-
 endif
 
 ifeq ($(TARGET),NEON)

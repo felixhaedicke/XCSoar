@@ -272,14 +272,20 @@ the Cubieboard.
 
 \subsection{Compiling for Kobo E-book Readers}
 
-You need an ARM toolchain.  For example, you can use the Debian
-package \verb|g++-5-arm-linux-gnueabihf|.
+An ARM toolchain with musl libc is required. It can be built with
+\href{http://crosstool-ng.github.io/}{crosstool-ng 1.23}, using the
+configuration from \linebreak
+\texttt{build/ct-ng/arm-unknown-linux-musleabihf.config}.
 
 To compile XCSoar, run:
 
 \begin{verbatim*}
-make TARGET=KOBO TCSUFFIX=-5
+make TARGET=KOBO
 \end{verbatim*}
+
+The \texttt{Makefile} assumes that the toolchais is installed in
+\verb|~/x-tools/armv7-kobo-linux-musleabihf|.  You can use the option
+\verb|KOBO_TOOLCHAIN| to override this path.
 
 To build the kobo install file \texttt{KoboRoot.tgz}, you need the
 following Debian packages:
@@ -291,10 +297,8 @@ sudo apt-get install fakeroot ttf-bitstream-vera
 Then compile using this command:
 
 \begin{verbatim*}
-make TARGET=KOBO TCSUFFIX=-5 output/KOBO/KoboRoot.tgz
+make TARGET=KOBO output/KOBO/KoboRoot.tgz
 \end{verbatim*}
-
-For this, you need the Debian package \verb|libc6-armhf-cross|.
 
 \subsubsection{Building USB-OTG Kobo Kernel}
 

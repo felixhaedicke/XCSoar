@@ -213,7 +213,9 @@ ifeq ($(TARGET),KOBO)
   TARGET_IS_KOBO = y
   MUSL = y
   HOST_TRIPLET = arm-unknown-linux-musleabihf
+  LLVM_TARGET = $(HOST_TRIPLET)
   KOBO_TOOLCHAIN ?= $(HOME)/x-tools/$(HOST_TRIPLET)
+  KOBO_SYSROOT = $(KOBO_TOOLCHAIN)/$(HOST_TRIPLET)/sysroot
   TCPREFIX = $(KOBO_TOOLCHAIN)/bin/$(HOST_TRIPLET)-
 endif
 
@@ -516,6 +518,10 @@ endif
 
 ifeq ($(TARGET_IS_KOBO),y)
   TARGET_CPPFLAGS += -DKOBO
+  ifeq ($(CLANG),y)
+    TARGET_CPPFLAGS += -B$(KOBO_TOOLCHAIN)
+    TARGET_CPPFLAGS += --sysroot=$(KOBO_SYSROOT)
+  endif
 endif
 
 ifeq ($(TARGET),ANDROID)
@@ -599,6 +605,11 @@ ifeq ($(TARGET_IS_KOBO),y)
   # for Kobo, we perform static linking against all libraries, including
   # musl libc
   TARGET_LDFLAGS += -static
+  ifeq ($(CLANG),y)
+    TARGET_LDFLAGS += -B$(KOBO_TOOLCHAIN)
+    TARGET_LDFLAGS += -B$(KOBO_TOOLCHAIN)/bin
+    TARGET_LDFLAGS += --sysroot=$(KOBO_SYSROOT)
+  endif
 endif
 
 ifeq ($(TARGET),ANDROID)

@@ -64,7 +64,17 @@ Thread::Start()
   creating = true;
 #endif
 
+#ifdef MUSL
+  /* In musl libc, the default stack size for created threads is 80 KB, which is
+     not enough for all of our threads.
+     640 KB ought to be enough for anybody. */
+  pthread_attr_t attr;
+  defined = (pthread_attr_init(&attr) == 0) &&
+            (pthread_attr_setstacksize(&attr, 640 * 1024) == 0) &&
+            (pthread_create(&handle, &attr, ThreadProc, this) == 0);
+#else
   defined = pthread_create(&handle, nullptr, ThreadProc, this) == 0;
+#endif
 
 #ifndef NDEBUG
   creating = false;

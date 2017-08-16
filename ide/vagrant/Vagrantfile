@@ -5,64 +5,91 @@ set -e
 cat >> ~/.profile << EOF
 export LANG=C
 export LC_CTYPE=C
-export USE_CCACHE=y
-export CCACHE_DIR=/vagrant/tmp/.ccache
 EOF
 
 # set ANDROID variables
-export ANDROID_API_LEVEL=22
-export ANDROID_SDK_VERSION=24.0.2
-export ANDROID_NDK_VERSION=10e
-export ANDROID_BUILD_TOOLS_VERSION=20.0.0
-
-# update Apt repository
-sudo apt-get update
-
-# install add-apt-repository helper
-sudo apt-get install -y python-software-properties
-
-# add ppa:ubuntu-toolchain-r/test repository for GCC 4.9
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+export ANDROID_SDK_TOOLS_VERSION=3859397
+export ANDROID_BUILD_TOOLS_VERSION=26.0.0
+export ANDROID_PLATFORM_VERSION=22
+export ANDROID_NDK_VERSION=r15c
 
 # update Apt repository
 sudo apt-get update
 
 # install base dependencies
-sudo apt-get install -y make g++-4.9 libsdl-image1.2-dev zlib1g-dev \
-    libsdl1.2-dev libfreetype6-dev libpng-dev libjpeg-dev libegl1-mesa-dev \
-    libcurl4-openssl-dev libxml-parser-perl librsvg2-bin xsltproc \
-    imagemagick gettext ttf-dejavu ccache zip p7zip-full git upx-ucl
-
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 49
-
-mkdir -p ~/opt
-
-# install PC/WIN64 dependencies
-sudo apt-get install -y binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686
-sudo apt-get install -y binutils-mingw-w64-x86-64 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
-
-# install ANDROID dependencies (incl. 64bit support)
-sudo apt-get install -y openjdk-7-jre-headless openjdk-7-jdk ant vorbis-tools
-sudo apt-get install -y libncurses5:i386 libstdc++6:i386 zlib1g:i386
-
-wget -N -nv http://dl.google.com/android/android-sdk_r$ANDROID_SDK_VERSION-linux.tgz -P /vagrant/tmp
-wget -N -nv http://dl.google.com/android/ndk/android-ndk-r$ANDROID_NDK_VERSION-linux-x86_64.bin -P /vagrant/tmp
-
-tar -xf /vagrant/tmp/android-sdk_r$ANDROID_SDK_VERSION-linux.tgz -C ~/opt
-7z x -o$HOME/opt /vagrant/tmp/android-ndk-r$ANDROID_NDK_VERSION-linux-x86_64.bin
-
-echo 'y' | ~/opt/android-sdk-linux/tools/android update sdk --no-ui --all --filter platform-tools
-echo 'y' | ~/opt/android-sdk-linux/tools/android update sdk --no-ui --all --filter build-tools-$ANDROID_BUILD_TOOLS_VERSION,android-$ANDROID_API_LEVEL
-
-# install Windows Mobile dependencies
-wget -N -nv http://spekje.snt.utwente.nl/~roel/cegcc/mingw32ce-mk-2013-04-03-amd64.tar.xz -P /vagrant/tmp
-tar -xf /vagrant/tmp/mingw32ce-mk-2013-04-03-amd64.tar.xz -C ~/opt
-echo "PATH=\"\$HOME/opt/mingw32ce-mk-2013-04-03-amd64/bin:\$PATH\"" >> ~/.profile
+sudo apt-get --assume-yes install make \
+  librsvg2-bin xsltproc \
+  imagemagick gettext ffmpeg \
+  git quilt zip \
+  m4 automake
+sudo apt-get clean
 
 # install Manual dependencies
-sudo apt-get install --no-install-recommends -y \
-    texlive texlive-latex-extra latex-xcolor pgf liblocale-po-perl \
-    texlive-lang-ukenglish texlive-lang-german texlive-lang-french
+sudo apt-get --assume-yes install texlive \
+  texlive-latex-extra \
+  texlive-luatex \
+  texlive-lang-french \
+  texlive-lang-polish \
+  texlive-lang-german \
+  liblocale-po-perl
+sudo apt-get clean
+
+# install dependencies for the Linux target
+sudo apt-get --assume-yes install make g++ \
+  zlib1g-dev \
+  libfreetype6-dev \
+  libpng-dev libjpeg-dev \
+  libtiff5-dev libgeotiff-dev \
+  libcurl4-openssl-dev \
+  liblua5.2-dev lua5.2-dev \
+  libxml-parser-perl \
+  libasound2-dev \
+  librsvg2-bin xsltproc \
+  imagemagick gettext \
+  mesa-common-dev libgl1-mesa-dev libegl1-mesa-dev \
+  fonts-dejavu
+sudo apt-get clean
+
+# install dependencies for compiling with LLVM / Clang
+sudo apt-get --assume-yes install llvm clang libc++-dev
+sudo apt-get clean
+
+# install dependencies for compiling targets which need libinput or GBM
+sudo apt-get --assume-yes install libinput-dev libgbm-dev
+sudo apt-get clean
+
+# install dependencies for ARM Linux targets
+sudo apt-get --assume-yes install g++-arm-linux-gnueabihf
+sudo apt-get clean
+
+# install PC/WIN64 dependencies
+sudo apt-get --assume-yes install g++-mingw-w64
+sudo apt-get clean
+
+# install dependencies for the Android target
+sudo apt --assume-yes install default-jdk-headless ant vorbis-tools
+if [ ! -d ~/opt/android-sdk-linux ]
+then
+  cd /tmp
+  wget --progress=bar:force:noscroll https://dl.google.com/android/repository/sdk-tools-linux-${ANDROID_SDK_TOOLS_VERSION}.zip
+  mkdir -p ~/opt/android-sdk-linux/licenses
+  cd ~/opt/android-sdk-linux
+  unzip /tmp/sdk-tools-linux-${ANDROID_SDK_TOOLS_VERSION}.zip
+  rm /tmp/sdk-tools-linux-${ANDROID_SDK_TOOLS_VERSION}.zip
+  echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > licenses/android-sdk-license
+fi
+cd ~/opt/android-sdk-linux
+echo "Installing Android SDK packages..."
+tools/bin/sdkmanager "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" "platforms;android-${ANDROID_PLATFORM_VERSION}"
+if [ ! -d ~/opt/android-ndk-${ANDROID_NDK_VERSION} ]
+then
+  cd /tmp
+  wget --progress=bar:force:noscroll https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux-x86_64.zip
+  cd ~/opt
+  rm -rf ~/opt/android-ndk-${ANDROID_NDK_VERSION}
+  unzip /tmp/android-ndk-${ANDROID_NDK_VERSION}-linux-x86_64.zip
+  rm /tmp/android-ndk-${ANDROID_NDK_VERSION}-linux-x86_64.zip
+fi
 
 SCRIPT
 

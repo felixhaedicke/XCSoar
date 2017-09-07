@@ -128,11 +128,6 @@ TopCanvas::Create(PixelSize new_size,
             strerror(errno));
     exit(EXIT_FAILURE);
   }
-  native_display = gbm_create_device(dri_fd);
-  if (native_display == nullptr) {
-    fprintf(stderr, "Could not create GBM device\n");
-    exit(EXIT_FAILURE);
-  }
 
   evctx = { 0 };
   evctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -183,6 +178,12 @@ TopCanvas::Create(PixelSize new_size,
   }
 
   mode = connector->modes[0];
+
+  native_display = gbm_create_device(dri_fd);
+  if (native_display == nullptr) {
+    fprintf(stderr, "Could not create GBM device\n");
+    exit(EXIT_FAILURE);
+  }
 
   native_window = gbm_surface_create(native_display, mode.hdisplay,
                                      mode.vdisplay,

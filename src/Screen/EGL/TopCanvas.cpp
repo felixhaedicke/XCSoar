@@ -37,6 +37,8 @@ Copyright_License {
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "Util/ScopeExit.hxx"
+
 constexpr const char * DEFAULT_DRI_DEVICE = "/dev/dri/card0";
 
 struct drm_fb {
@@ -134,6 +136,8 @@ TopCanvas::Create(PixelSize new_size,
     fprintf(stderr, "drmModeGetResources() failed\n");
     exit(EXIT_FAILURE);
   }
+
+  AtScopeExit(resources) { drmModeFreeResources(resources); };
 
   for (int i = 0;
        (i < resources->count_connectors) && (connector == nullptr);

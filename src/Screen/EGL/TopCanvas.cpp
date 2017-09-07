@@ -298,6 +298,8 @@ TopCanvas::Destroy()
                    &saved_crtc->mode);
   gbm_surface_destroy(native_window);
   gbm_device_destroy(native_display);
+  drmModeFreeEncoder(encoder);
+  drmModeFreeConnector(connector);
   close(dri_fd);
 #endif
 }

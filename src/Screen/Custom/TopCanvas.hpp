@@ -107,7 +107,7 @@ class TopCanvas
   struct gbm_device *native_display;
   struct gbm_surface *native_window;
 
-  int dri_fd;
+  int dri_fd = -1;
 
   struct gbm_bo *current_bo = nullptr;
 

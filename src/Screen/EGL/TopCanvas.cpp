@@ -129,13 +129,6 @@ TopCanvas::Create(PixelSize new_size,
     exit(EXIT_FAILURE);
   }
 
-  evctx = { 0 };
-  evctx.version = DRM_EVENT_CONTEXT_VERSION;
-  evctx.page_flip_handler = [](int fd, unsigned int frame, unsigned int sec,
-                               unsigned int usec, void *flip_finishedPtr) {
-    *reinterpret_cast<bool*>(flip_finishedPtr) = true;
-  };
-
   drmModeRes *resources = drmModeGetResources(dri_fd);
   if (resources == nullptr) {
     fprintf(stderr, "drmModeGetResources() failed\n");
@@ -193,6 +186,13 @@ TopCanvas::Create(PixelSize new_size,
     fprintf(stderr, "Could not create GBM surface\n");
     exit(EXIT_FAILURE);
   }
+
+  evctx = { 0 };
+  evctx.version = DRM_EVENT_CONTEXT_VERSION;
+  evctx.page_flip_handler = [](int fd, unsigned int frame, unsigned int sec,
+                               unsigned int usec, void *flip_finishedPtr) {
+    *reinterpret_cast<bool*>(flip_finishedPtr) = true;
+  };
 #endif
 
   CreateEGL(native_display, native_window);

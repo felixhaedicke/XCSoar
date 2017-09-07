@@ -113,11 +113,6 @@ TopCanvas::Create(PixelSize new_size,
   mali_native_window.height = new_size.cy;
   struct mali_native_window *native_window = &mali_native_window;
 #elif defined(MESA_KMS)
-  current_bo = nullptr;
-  connector = nullptr;
-  encoder = nullptr;
-  saved_crtc = nullptr;
-
   const char* dri_device = getenv("DRI_DEVICE");
   if (nullptr == dri_device)
     dri_device = DEFAULT_DRI_DEVICE;

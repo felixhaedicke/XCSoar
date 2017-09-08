@@ -306,15 +306,37 @@ TopCanvas::Destroy()
 void
 TopCanvas::DestroyDRM() noexcept
 {
-  if (nullptr != saved_crtc)
+  if (nullptr != saved_crtc) {
     drmModeSetCrtc(dri_fd, saved_crtc->crtc_id, saved_crtc->buffer_id,
                    saved_crtc->x, saved_crtc->y, &connector->connector_id, 1,
                    &saved_crtc->mode);
-  gbm_surface_destroy(native_window);
-  gbm_device_destroy(native_display);
-  drmModeFreeEncoder(encoder);
-  drmModeFreeConnector(connector);
-  close(dri_fd);
+    saved_crtc = nullptr;
+  }
+
+  if (nullptr != native_window) {
+    gbm_surface_destroy(native_window);
+    native_window = nullptr;
+  }
+
+  if (nullptr != native_display) {
+    gbm_device_destroy(native_display);
+    native_display = nullptr;
+  }
+
+  if (nullptr != encoder) {
+    drmModeFreeEncoder(encoder);
+    encoder = nullptr;
+  }
+
+  if (nullptr != connector) {
+    drmModeFreeConnector(connector);
+    connector = nullptr;
+  }
+
+  if (-1 != dri_fd) {
+    close(dri_fd);
+    dri_fd = -1;
+  }
 }
 #endif
 

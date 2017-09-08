@@ -287,6 +287,14 @@ TopCanvas::Destroy()
 #endif
 
 #ifdef MESA_KMS
+  DestroyDRM();
+#endif
+}
+
+#ifdef MESA_KMS
+void
+TopCanvas::DestroyDRM() noexcept
+{
   if (nullptr != saved_crtc)
     drmModeSetCrtc(dri_fd, saved_crtc->crtc_id, saved_crtc->buffer_id,
                    saved_crtc->x, saved_crtc->y, &connector->connector_id, 1,
@@ -296,8 +304,8 @@ TopCanvas::Destroy()
   drmModeFreeEncoder(encoder);
   drmModeFreeConnector(connector);
   close(dri_fd);
-#endif
 }
+#endif
 
 PixelSize
 TopCanvas::GetNativeSize() const

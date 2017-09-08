@@ -210,6 +210,10 @@ public:
   }
 
   void Destroy();
+
+#ifdef MESA_KMS
+  void DestroyDRM() noexcept;
+#endif
 #endif
 
 #ifdef USE_MEMORY_CANVAS

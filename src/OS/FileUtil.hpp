@@ -39,6 +39,19 @@ Copyright_License {
 
 namespace File
 {
+#ifdef HAVE_POSIX
+  /**
+   * File types on posix platforms.
+   */
+  enum PosixType {
+    TYPE_REGULAR = 1,
+    TYPE_SYMLINK = 1 << 1,
+    TYPE_CHARACTER_DEV = 1 << 2,
+    TYPE_BLOCK_DEV = 1 << 3,
+    TYPE_FIFO = 1 << 4,
+  };
+#endif
+
   /**
    * Base class for a FileVisitor that is used by Directory::VisitFiles()
    */
@@ -75,9 +88,14 @@ namespace Directory
    * @param path Path to visit
    * @param visitor Visitor that should be used
    * @param recursive If true all subfolders will be visited too
+   * @param mask of posix types to consider, or 0 for no posix type filter
    */
   void VisitFiles(Path path, File::Visitor &visitor,
-                  bool recursive = false);
+                  bool recursive = false
+#ifdef HAVE_POSIX
+                  , File::PosixType types = File::PosixType::TYPE_REGULAR
+#endif
+                  );
 
   /**
    * Visit all the files of a specific directory that match the given
@@ -86,9 +104,15 @@ namespace Directory
    * @param filter Filename pattern that should be searched for
    * @param visitor Visitor that should be used
    * @param recursive If true all subfolders will be visited too
+   * @param mask of posix types to consider, or 0 for no posix type filter
    */
   void VisitSpecificFiles(Path path, const TCHAR *filter,
-                          File::Visitor &visitor, bool recursive = false);
+                          File::Visitor &visitor, bool recursive = false
+#ifdef HAVE_POSIX
+                          , File::PosixType types =
+                                File::PosixType::TYPE_REGULAR
+#endif
+                          );
 }
 
 namespace File

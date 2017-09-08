@@ -161,6 +161,9 @@ ScanFiles(File::Visitor &visitor, Path sPath,
 
 static bool
 ScanDirectories(File::Visitor &visitor, bool recursive,
+#ifdef HAVE_POSIX
+                File::PosixType types,
+#endif
                 Path sPath, const TCHAR* filter = _T("*"))
 {
 #ifdef HAVE_POSIX
@@ -186,13 +189,21 @@ ScanDirectories(File::Visitor &visitor, bool recursive,
       continue;
 
     if (S_ISDIR(st.st_mode) && recursive)
-      ScanDirectories(visitor, true, Path(FileName), filter);
+      ScanDirectories(visitor, true, types, Path(FileName), filter);
     else {
       int flags = 0;
 #ifdef FNM_CASEFOLD
       flags = FNM_CASEFOLD;
 #endif
-      if (S_ISREG(st.st_mode) && fnmatch(filter, ent->d_name, flags) == 0)
+      if (0 != types &&
+          !(types & File::TYPE_REGULAR && S_ISREG(st.st_mode)) &&
+          !(types & File::TYPE_SYMLINK && S_ISLNK(st.st_mode)) &&
+          !(types & File::TYPE_CHARACTER_DEV && S_ISCHR(st.st_mode)) &&
+          !(types & File::TYPE_BLOCK_DEV && S_ISBLK(st.st_mode)) &&
+          !(types & File::TYPE_FIFO && S_ISFIFO(st.st_mode)))
+        continue;
+
+      if (fnmatch(filter, ent->d_name, flags) == 0)
         visitor.Visit(Path(FileName), Path(ent->d_name));
     }
   }
@@ -266,16 +277,32 @@ ScanDirectories(File::Visitor &visitor, bool recursive,
 }
 
 void
-Directory::VisitFiles(Path path, File::Visitor &visitor, bool recursive)
+Directory::VisitFiles(Path path, File::Visitor &visitor, bool recursive
+#ifdef HAVE_POSIX
+                      , File::PosixType types
+#endif
+                      )
 {
-  ScanDirectories(visitor, recursive, path);
+  ScanDirectories(visitor, recursive,
+#ifdef HAVE_POSIX
+                  types,
+#endif
+                  path);
 }
 
 void
 Directory::VisitSpecificFiles(Path path, const TCHAR* filter,
-                              File::Visitor &visitor, bool recursive)
+                              File::Visitor &visitor, bool recursive
+#ifdef HAVE_POSIX
+                              , File::PosixType types
+#endif
+                              )
 {
-  ScanDirectories(visitor, recursive, path, filter);
+  ScanDirectories(visitor, recursive,
+#ifdef HAVE_POSIX
+                  types,
+#endif
+                  path, filter);
 }
 
 bool

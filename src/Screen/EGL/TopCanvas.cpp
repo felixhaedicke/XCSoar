@@ -119,17 +119,28 @@ TopCanvas::Create(PixelSize new_size,
   printf("Using DRI device %s (use environment variable "
            "DRI_DEVICE to override)\n",
          dri_device);
+  if (!CreateDRM(dri_device))
+    exit(EXIT_FAILURE);
+#endif
+
+  CreateEGL(native_display, native_window);
+}
+
+#ifdef MESA_KMS
+bool
+TopCanvas::CreateDRM(const char *dri_device) noexcept
+{
   dri_fd = open(dri_device, O_RDWR);
   if (dri_fd == -1) {
     fprintf(stderr, "Could not open DRI device %s: %s\n", dri_device,
             strerror(errno));
-    exit(EXIT_FAILURE);
+    return false;
   }
 
   drmModeRes *resources = drmModeGetResources(dri_fd);
   if (resources == nullptr) {
     fprintf(stderr, "drmModeGetResources() failed\n");
-    exit(EXIT_FAILURE);
+    return false;
   }
 
   AtScopeExit(resources) { drmModeFreeResources(resources); };
@@ -149,7 +160,7 @@ TopCanvas::Create(PixelSize new_size,
 
   if (nullptr == connector) {
     fprintf(stderr, "No usable DRM connector found\n");
-    exit(EXIT_FAILURE);
+    return false;
   }
 
   for (int i = 0;
@@ -166,7 +177,7 @@ TopCanvas::Create(PixelSize new_size,
 
   if (encoder == nullptr) {
     fprintf(stderr, "No usable DRM encoder found\n");
-    exit(EXIT_FAILURE);
+    return false;
   }
 
   mode = connector->modes[0];
@@ -174,7 +185,7 @@ TopCanvas::Create(PixelSize new_size,
   native_display = gbm_create_device(dri_fd);
   if (native_display == nullptr) {
     fprintf(stderr, "Could not create GBM device\n");
-    exit(EXIT_FAILURE);
+    return false;
   }
 
   native_window = gbm_surface_create(native_display, mode.hdisplay,
@@ -183,7 +194,7 @@ TopCanvas::Create(PixelSize new_size,
                                      GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
   if (native_window == nullptr) {
     fprintf(stderr, "Could not create GBM surface\n");
-    exit(EXIT_FAILURE);
+    return false;
   }
 
   evctx = { 0 };
@@ -192,10 +203,10 @@ TopCanvas::Create(PixelSize new_size,
                                unsigned int usec, void *flip_finishedPtr) {
     *reinterpret_cast<bool*>(flip_finishedPtr) = true;
   };
-#endif
 
-  CreateEGL(native_display, native_window);
+  return true;
 }
+#endif
 
 #endif
 

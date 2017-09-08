@@ -247,6 +247,9 @@ public:
 #else
   void Create(PixelSize new_size,
               bool full_screen, bool resizable);
+#ifdef MESA_KMS
+  bool CreateDRM(const char *dri_device) noexcept;
+#endif
 #endif
 
 #if defined(USE_FB) || (defined(ENABLE_OPENGL) && (defined(USE_EGL) || defined(USE_GLX) || defined(ENABLE_SDL)))

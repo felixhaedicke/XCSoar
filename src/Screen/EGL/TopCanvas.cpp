@@ -37,15 +37,24 @@ Copyright_License {
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "Util/ScopeExit.hxx"
+#include <limits>
+#include <set>
 
-constexpr const char * DEFAULT_DRI_DEVICE = "/dev/dri/card0";
+#include "OS/FileUtil.hpp"
+#include "OS/Path.hpp"
+#include "Util/Macros.hpp"
+#include "Util/NumberParser.hpp"
+#include "Util/ScopeExit.hxx"
+#include "Util/StringFormat.hpp"
 
 struct drm_fb {
   struct gbm_bo *bo;
   uint32_t fb_id;
   int dri_fd;
 };
+
+#define DRI_DEV_PATH "/dev/dri"
+#define DRI_CARD_DEVNAME_PREFIX "card"
 #endif
 
 /**
@@ -113,14 +122,48 @@ TopCanvas::Create(PixelSize new_size,
   mali_native_window.height = new_size.cy;
   struct mali_native_window *native_window = &mali_native_window;
 #elif defined(MESA_KMS)
-  const char* dri_device = getenv("DRI_DEVICE");
-  if (nullptr == dri_device)
-    dri_device = DEFAULT_DRI_DEVICE;
-  printf("Using DRI device %s (use environment variable "
-           "DRI_DEVICE to override)\n",
-         dri_device);
-  if (!CreateDRM(dri_device))
-    exit(EXIT_FAILURE);
+  std::set<unsigned> dri_card_numbers;
+  const char* dri_device_env = getenv("DRI_DEVICE");
+  if ((nullptr == dri_device_env) || (*dri_device_env == '\0')) {
+    class Visitor : public File::Visitor {
+      std::set<unsigned> &dri_card_numbers;
+
+    public:
+      explicit Visitor(std::set<unsigned> &_dri_card_numbers)
+        : dri_card_numbers(_dri_card_numbers) {}
+
+      void Visit(Path path, Path filename) override {
+        unsigned no = ParseUnsigned(filename.c_str() + 4);
+        if (std::numeric_limits<unsigned>::max() != no)
+          dri_card_numbers.insert(ParseUnsigned(filename.c_str() + 4));
+      }
+    } visitor(dri_card_numbers);
+
+    Directory::VisitSpecificFiles(Path(DRI_DEV_PATH),
+                                  DRI_CARD_DEVNAME_PREFIX "*",
+                                  visitor, false, File::TYPE_CHARACTER_DEV);
+
+    char dri_path_buffer[64];
+    bool successful = false;
+    for (unsigned dri_card_number : dri_card_numbers) {
+      StringFormat(dri_path_buffer, ARRAY_SIZE(dri_path_buffer),
+                   DRI_DEV_PATH "/" DRI_CARD_DEVNAME_PREFIX "%u",
+                   dri_card_number);
+      printf("Trying to initalise DRI interface %s\n", dri_path_buffer);
+      if (CreateDRM(dri_path_buffer)) {
+        successful = true;
+        break;
+      } else
+        DestroyDRM();
+    }
+    if (!successful) {
+      fprintf(stderr, "No usable DRI interface found\n");
+      exit(EXIT_FAILURE);
+    }
+  } else {
+    if (!CreateDRM(dri_device_env))
+      exit(EXIT_FAILURE);
+  }
 #endif
 
   CreateEGL(native_display, native_window);

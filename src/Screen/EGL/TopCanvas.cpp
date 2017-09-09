@@ -185,8 +185,11 @@ TopCanvas::CreateDRM(const char *dri_device) noexcept
     return false;
   }
 
+  if (0 != ioctl(dri_fd, DRM_IOCTL_SET_MASTER, 0)) {
+    perror("Could not become DRI device master");
     return false;
   }
+  is_dri_master = true;
 
   drm_mode_card_res res = {};
   std::unique_ptr<uint32_t[]> fb_ids;
@@ -378,6 +381,10 @@ TopCanvas::DestroyDRM() noexcept
   }
 
   if (-1 != dri_fd) {
+    if (is_dri_master) {
+      BOOST_VERIFY(0 == ioctl(dri_fd, DRM_IOCTL_DROP_MASTER, 0));
+      is_dri_master = false;
+    }
     close(dri_fd);
     dri_fd = -1;
   }

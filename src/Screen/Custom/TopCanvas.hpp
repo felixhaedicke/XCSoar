@@ -109,6 +109,7 @@ class TopCanvas
 
   struct gbm_bo *current_bo = nullptr;
 
+  bool is_dri_master = false;
   uint32_t drm_connector_id;
   drm_mode_crtc drm_orig_crtc;
 #endif

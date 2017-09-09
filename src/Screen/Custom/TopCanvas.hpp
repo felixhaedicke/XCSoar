@@ -43,9 +43,7 @@ Copyright_License {
 #include "Screen/EGL/System.hpp"
 
 #ifdef MESA_KMS
-#include <drm.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
+#include <drm_mode.h>
 #endif
 #endif
 
@@ -111,13 +109,8 @@ class TopCanvas
 
   struct gbm_bo *current_bo = nullptr;
 
-  drmEventContext evctx;
-
-  drmModeConnector *connector = nullptr;
-  drmModeEncoder *encoder = nullptr;
-  drmModeModeInfo mode;
-
-  drmModeCrtc* saved_crtc = nullptr;
+  uint32_t drm_connector_id;
+  drm_mode_crtc drm_orig_crtc;
 #endif
 
   EGLDisplay display;

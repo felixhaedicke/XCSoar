@@ -32,19 +32,24 @@ Copyright_License {
 #ifdef MESA_KMS
 #include <errno.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <boost/assert.hpp>
+
 #include <limits>
+#include <memory>
 #include <set>
 
 #include "OS/FileUtil.hpp"
 #include "OS/Path.hpp"
+#include "Util/AllocatedArray.hxx"
 #include "Util/Macros.hpp"
 #include "Util/NumberParser.hpp"
-#include "Util/ScopeExit.hxx"
 #include "Util/StringFormat.hpp"
 
 struct drm_fb {
@@ -180,50 +185,61 @@ TopCanvas::CreateDRM(const char *dri_device) noexcept
     return false;
   }
 
-  drmModeRes *resources = drmModeGetResources(dri_fd);
-  if (resources == nullptr) {
-    fprintf(stderr, "drmModeGetResources() failed\n");
     return false;
   }
 
-  AtScopeExit(resources) { drmModeFreeResources(resources); };
+  drm_mode_card_res res = {};
+  std::unique_ptr<uint32_t[]> fb_ids;
+  std::unique_ptr<uint32_t[]> crtc_ids;
+  std::unique_ptr<uint32_t[]> connector_ids;
+  std::unique_ptr<uint32_t[]> encoder_ids;
+  bool get_res_success =
+      (0 == ioctl(dri_fd, DRM_IOCTL_MODE_GETRESOURCES, &res));
+  if (get_res_success) {
+    fb_ids = std::unique_ptr<uint32_t[]>(new uint32_t[res.count_fbs]);
+    crtc_ids = std::unique_ptr<uint32_t[]>(new uint32_t[res.count_crtcs]);
+    connector_ids =
+        std::unique_ptr<uint32_t[]>(new uint32_t[res.count_connectors]);
+    encoder_ids = std::unique_ptr<uint32_t[]>(new uint32_t[res.count_encoders]);
+    res.fb_id_ptr = reinterpret_cast<uintptr_t>(fb_ids.get());
+    res.crtc_id_ptr = reinterpret_cast<uintptr_t>(crtc_ids.get());
+    res.connector_id_ptr = reinterpret_cast<uintptr_t>(connector_ids.get());
+    res.encoder_id_ptr = reinterpret_cast<uintptr_t>(encoder_ids.get());
+    get_res_success = (0 == ioctl(dri_fd, DRM_IOCTL_MODE_GETRESOURCES, &res));
+  }
+  if (!get_res_success) {
+    perror("Could not get DRM resources");
+    return false;
+  }
 
-  for (int i = 0;
-       (i < resources->count_connectors) && (connector == nullptr);
+  assert(0 == drm_connector_id);
+  assert(0 == drm_orig_crtc.crtc_id);
+  for (uint32_t i = 0;
+       (i < res.count_connectors) && (0 == drm_orig_crtc.crtc_id);
        ++i) {
-    connector = drmModeGetConnector(dri_fd, resources->connectors[i]);
-    if (nullptr != connector) {
-      if ((connector->connection != DRM_MODE_CONNECTED) ||
-          (connector->count_modes <= 0)) {
-        drmModeFreeConnector(connector);
-        connector = nullptr;
+    drm_mode_get_connector conn = {};
+    conn.connector_id = connector_ids[i];
+    if ((0 == ioctl(dri_fd, DRM_IOCTL_MODE_GETCONNECTOR, &conn)) &&
+        (0 != conn.connection) && (0 != conn.encoder_id)) {
+      drm_mode_get_encoder enc = {};
+      enc.encoder_id = conn.encoder_id;
+      if ((0 == ioctl(dri_fd, DRM_IOCTL_MODE_GETENCODER, &enc)) &&
+          (0 != enc.crtc_id)) {
+        drm_mode_crtc crtc = {};
+        crtc.crtc_id = enc.crtc_id;
+        if ((0 == ioctl(dri_fd, DRM_IOCTL_MODE_GETCRTC, &crtc)) &&
+            (crtc.mode.hdisplay > 0) && (crtc.mode.vdisplay > 0)) {
+          drm_connector_id = connector_ids[i];
+          drm_orig_crtc = crtc;
+        }
       }
     }
   }
 
-  if (nullptr == connector) {
-    fprintf(stderr, "No usable DRM connector found\n");
+  if (0 == drm_orig_crtc.crtc_id) {
+    fprintf(stderr, "No usable DRM connector / encoder / CRTC found\n");
     return false;
   }
-
-  for (int i = 0;
-       (i < resources->count_encoders) && (encoder == nullptr);
-       i++) {
-    encoder = drmModeGetEncoder(dri_fd, resources->encoders[i]);
-    if (encoder != nullptr) {
-      if (encoder->encoder_id != connector->encoder_id) {
-        drmModeFreeEncoder(encoder);
-        encoder = nullptr;
-      }
-    }
-  }
-
-  if (encoder == nullptr) {
-    fprintf(stderr, "No usable DRM encoder found\n");
-    return false;
-  }
-
-  mode = connector->modes[0];
 
   native_display = gbm_create_device(dri_fd);
   if (native_display == nullptr) {
@@ -231,21 +247,15 @@ TopCanvas::CreateDRM(const char *dri_device) noexcept
     return false;
   }
 
-  native_window = gbm_surface_create(native_display, mode.hdisplay,
-                                     mode.vdisplay,
+  native_window = gbm_surface_create(native_display,
+                                     drm_orig_crtc.mode.hdisplay,
+                                     drm_orig_crtc.mode.vdisplay,
                                      GBM_FORMAT_XRGB8888,
                                      GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
   if (native_window == nullptr) {
     fprintf(stderr, "Could not create GBM surface\n");
     return false;
   }
-
-  evctx = { 0 };
-  evctx.version = DRM_EVENT_CONTEXT_VERSION;
-  evctx.page_flip_handler = [](int fd, unsigned int frame, unsigned int sec,
-                               unsigned int usec, void *flip_finishedPtr) {
-    *reinterpret_cast<bool*>(flip_finishedPtr) = true;
-  };
 
   return true;
 }
@@ -349,11 +359,12 @@ TopCanvas::Destroy()
 void
 TopCanvas::DestroyDRM() noexcept
 {
-  if (nullptr != saved_crtc) {
-    drmModeSetCrtc(dri_fd, saved_crtc->crtc_id, saved_crtc->buffer_id,
-                   saved_crtc->x, saved_crtc->y, &connector->connector_id, 1,
-                   &saved_crtc->mode);
-    saved_crtc = nullptr;
+  if (0 != drm_orig_crtc.crtc_id) {
+    drm_orig_crtc.set_connectors_ptr =
+        reinterpret_cast<uintptr_t>(&drm_connector_id);
+    drm_orig_crtc.count_connectors = 1;
+    BOOST_VERIFY(0 == ioctl(dri_fd, DRM_IOCTL_MODE_SETCRTC, &drm_orig_crtc));
+    drm_orig_crtc.crtc_id = 0;
   }
 
   if (nullptr != native_window) {
@@ -364,16 +375,6 @@ TopCanvas::DestroyDRM() noexcept
   if (nullptr != native_display) {
     gbm_device_destroy(native_display);
     native_display = nullptr;
-  }
-
-  if (nullptr != encoder) {
-    drmModeFreeEncoder(encoder);
-    encoder = nullptr;
-  }
-
-  if (nullptr != connector) {
-    drmModeFreeConnector(connector);
-    connector = nullptr;
   }
 
   if (-1 != dri_fd) {
@@ -412,12 +413,17 @@ TopCanvas::Flip()
     fb->bo = new_bo;
     fb->dri_fd = dri_fd;
 
-    int ret = drmModeAddFB(dri_fd, gbm_bo_get_width(new_bo),
-                           gbm_bo_get_height(new_bo), 24, 32,
-                           gbm_bo_get_stride(new_bo),
-                           gbm_bo_get_handle(new_bo).u32, &fb->fb_id);
-    if (ret != 0) {
-      fprintf(stderr, "drmModeAddFB() failed: %d\n", ret);
+    drm_mode_fb_cmd add_fb_cmd;
+    add_fb_cmd.width = drm_orig_crtc.mode.hdisplay;
+    add_fb_cmd.height = drm_orig_crtc.mode.vdisplay;
+    add_fb_cmd.pitch = 4 * drm_orig_crtc.mode.hdisplay;
+    add_fb_cmd.bpp = 32;
+    add_fb_cmd.depth = 24;
+    add_fb_cmd.handle = gbm_bo_get_handle(new_bo).u32;
+    if (0 == ioctl(dri_fd, DRM_IOCTL_MODE_ADDFB, &add_fb_cmd))
+      fb->fb_id = add_fb_cmd.fb_id;
+    else {
+      perror("DRM mode add FB failed");
       exit(EXIT_FAILURE);
     }
   }
@@ -426,31 +432,51 @@ TopCanvas::Flip()
                        fb,
                        [](struct gbm_bo *bo, void *data) {
     struct drm_fb *fb = (struct drm_fb*) data;
-    if (fb->fb_id)
-      drmModeRmFB(fb->dri_fd, fb->fb_id);
+    if (fb->fb_id) {
+      BOOST_VERIFY(0 == ioctl(fb->dri_fd, DRM_IOCTL_MODE_RMFB, &fb->fb_id));
+    }
 
     delete fb;
   });
 
   if (nullptr == current_bo) {
-    saved_crtc = drmModeGetCrtc(dri_fd, encoder->crtc_id);
-    drmModeSetCrtc(dri_fd, encoder->crtc_id, fb->fb_id, 0, 0,
-                   &connector->connector_id, 1, &mode);
+    drm_mode_crtc fb_crtc = drm_orig_crtc;
+    fb_crtc.fb_id = fb->fb_id;
+    fb_crtc.set_connectors_ptr = reinterpret_cast<uintptr_t>(&drm_connector_id);
+    fb_crtc.count_connectors = 1;
+    if (0 != ioctl(dri_fd, DRM_IOCTL_MODE_SETCRTC, &fb_crtc)) {
+      perror("DRM mode set CRTC failed");
+      exit(EXIT_FAILURE);
+    }
+    assert(drm_orig_crtc.crtc_id == fb_crtc.crtc_id);
   }
 
-  bool flip_finished = false;
-  int page_flip_ret = drmModePageFlip(dri_fd, encoder->crtc_id, fb->fb_id,
-                                      DRM_MODE_PAGE_FLIP_EVENT,
-                                      &flip_finished);
-  if (0 != page_flip_ret) {
-    fprintf(stderr, "drmModePageFlip() failed: %d\n", page_flip_ret);
+  drm_mode_crtc_page_flip flip_cmd;
+  flip_cmd.crtc_id = drm_orig_crtc.crtc_id;
+  flip_cmd.fb_id = fb->fb_id;
+  flip_cmd.flags = DRM_MODE_PAGE_FLIP_EVENT;
+  flip_cmd.reserved = 0;
+  flip_cmd.user_data = 0;
+  if (0 != ioctl(dri_fd, DRM_IOCTL_MODE_PAGE_FLIP, &flip_cmd)) {
+    perror("DRM mode page flip failed");
     exit(EXIT_FAILURE);
   }
-  while (!flip_finished) {
-    int handle_event_ret = drmHandleEvent(dri_fd, &evctx);
-    if (0 != handle_event_ret) {
-      fprintf(stderr, "drmHandleEvent() failed: %d\n", handle_event_ret);
+
+  for (bool flip_finished = false; !flip_finished;) {
+    char ev_buffer[64];
+    int read_ret = read(dri_fd, &ev_buffer, sizeof(ev_buffer));
+    if (-1 == read_ret) {
+      perror("Could not read DRI events");
       exit(EXIT_FAILURE);
+    }
+    assert(0 != read_ret);
+    for (int i = 0; i < read_ret;) {
+      drm_event ev;
+      memcpy(&ev, ev_buffer + i, sizeof(ev));
+      if (DRM_EVENT_FLIP_COMPLETE == ev.type) {
+        flip_finished = true;
+      }
+      i += ev.length;
     }
   }
 

@@ -68,7 +68,7 @@ $(eval $(call pkg-config-library,DRM,libdrm))
 $(eval $(call pkg-config-library,GBM,gbm))
 EGL_FEATURE_CPPFLAGS += -DMESA_KMS
 EGL_CPPFLAGS += $(DRM_CPPFLAGS) $(GBM_CPPFLAGS)
-EGL_LDLIBS += $(DRM_LDLIBS) $(GBM_LDLIBS)
+EGL_LDLIBS += $(GBM_LDLIBS)
 USE_CONSOLE = y
 else ifeq ($(USE_WAYLAND),y)
 EGL_CPPFLAGS += $(WAYLAND_CPPFLAGS)

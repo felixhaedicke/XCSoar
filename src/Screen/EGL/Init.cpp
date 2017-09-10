@@ -21,6 +21,8 @@ Copyright_License {
 }
 */
 
+#include <assert.h>
+
 #include "Screen/Init.hpp"
 #include "Event/Globals.hpp"
 #include "Event/Queue.hpp"
@@ -28,14 +30,18 @@ Copyright_License {
 #include "Screen/Font.hpp"
 #include "Screen/OpenGL/Init.hpp"
 
-#ifdef USE_VIDEOCORE
-#include "bcm_host.h"
+#include "EGLDriver.hpp"
+
+#if !defined(USE_X11) && !defined(USE_WAYLAND)
+EGLDriver *global_egl_driver = nullptr;
 #endif
 
 ScreenGlobalInit::ScreenGlobalInit()
 {
-#ifdef USE_VIDEOCORE
-  bcm_host_init();
+#if !defined(USE_X11) && !defined(USE_WAYLAND)
+  assert(nullptr == global_egl_driver);
+  global_egl_driver = new EGLDriver();
+  global_egl_driver->Init();
 #endif
 
   OpenGL::Initialise();
@@ -55,6 +61,12 @@ ScreenGlobalInit::~ScreenGlobalInit()
   OpenGL::Deinitialise();
 
   Font::Deinitialise();
+
+#if !defined(USE_X11) && !defined(USE_WAYLAND)
+  assert(nullptr != global_egl_driver);
+  delete global_egl_driver;
+  global_egl_driver = nullptr;
+#endif
 
   ScreenDeinitialized();
 }

@@ -41,11 +41,8 @@ Copyright_License {
 
 #ifdef USE_EGL
 #include "Screen/EGL/System.hpp"
-
-#ifdef MESA_KMS
-#include <drm_mode.h>
 #endif
-#endif
+#include "Screen/EGL/EGLDriver.hpp"
 
 #ifdef USE_GLX
 #include "Screen/GLX/System.hpp"
@@ -80,7 +77,7 @@ class Canvas;
 struct PixelSize;
 struct PixelRect;
 
-#if (defined(USE_FB) && !defined(KOBO)) || (defined USE_EGL && (defined(USE_VIDEOCORE) || defined(HAVE_MALI)))
+#if (defined(USE_FB) && !defined(KOBO)) || (defined USE_EGL && (defined(USE_VIDEOCORE) || defined(HAVE_MALI) || defined(HAVE_POWERVR)))
 /* defined if we need to initialise /dev/tty to graphics mode, see
    TopCanvas::InitialiseTTY() */
 #define USE_TTY
@@ -92,28 +89,6 @@ class TopCanvas
 #endif
 {
 #ifdef USE_EGL
-#if defined(USE_X11) || defined(USE_WAYLAND)
-#elif defined(USE_VIDEOCORE)
-  /* for Raspberry Pi */
-  DISPMANX_DISPLAY_HANDLE_T vc_display;
-  DISPMANX_UPDATE_HANDLE_T vc_update;
-  DISPMANX_ELEMENT_HANDLE_T vc_element;
-  EGL_DISPMANX_WINDOW_T vc_window;
-#elif defined(HAVE_MALI)
-  struct mali_native_window mali_native_window;
-#elif defined(MESA_KMS)
-  struct gbm_device *native_display;
-  struct gbm_surface *native_window;
-
-  int dri_fd = -1;
-
-  struct gbm_bo *current_bo = nullptr;
-
-  bool is_dri_master = false;
-  uint32_t drm_connector_id;
-  drm_mode_crtc drm_orig_crtc;
-#endif
-
   EGLDisplay display;
 #ifndef ANDROID
   EGLContext context;
@@ -204,10 +179,6 @@ public:
   }
 
   void Destroy();
-
-#ifdef MESA_KMS
-  void DestroyDRM() noexcept;
-#endif
 #endif
 
 #ifdef USE_MEMORY_CANVAS
@@ -241,9 +212,6 @@ public:
 #else
   void Create(PixelSize new_size,
               bool full_screen, bool resizable);
-#ifdef MESA_KMS
-  bool CreateDRM(const char *dri_device) noexcept;
-#endif
 #endif
 
 #if defined(USE_FB) || (defined(ENABLE_OPENGL) && (defined(USE_EGL) || defined(USE_GLX) || defined(ENABLE_SDL)))

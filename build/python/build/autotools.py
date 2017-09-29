@@ -1,8 +1,8 @@
 import os.path, subprocess, sys
 
-from build.project import Project
+from build.makeproject import MakeProject
 
-class AutotoolsProject(Project):
+class AutotoolsProject(MakeProject):
     def __init__(self, url, alternative_url, md5, installed, configure_args=[],
                  autogen=False,
                  cppflags='',
@@ -13,7 +13,7 @@ class AutotoolsProject(Project):
                  install_target='install',
                  use_destdir=False,
                  **kwargs):
-        Project.__init__(self, url, alternative_url, md5, installed, **kwargs)
+        MakeProject.__init__(self, url, alternative_url, md5, installed, **kwargs)
         self.configure_args = configure_args
         self.autogen = autogen
         self.cppflags = cppflags
@@ -21,7 +21,6 @@ class AutotoolsProject(Project):
         self.libs = libs
         self.shared = shared
         self.install_prefix = install_prefix
-        self.install_target = install_target
         self.use_destdir = use_destdir
 
     def _filter_cflags(self, flags):
@@ -70,14 +69,12 @@ class AutotoolsProject(Project):
         subprocess.check_call(configure, cwd=build, env=toolchain.env)
         return build
 
+    def get_make_install_args(self, toolchain):
+        args = MakeProject.get_make_install_args(self, toolchain)
+        if self.use_destdir:
+            args += ['DESTDIR=' + toolchain.install_prefix]
+        return args
+
     def build(self, toolchain):
         build = self.configure(toolchain)
-
-        destdir = []
-        if self.use_destdir:
-            destdir = ['DESTDIR=' + toolchain.install_prefix]
-
-        subprocess.check_call(['/usr/bin/make', '--quiet', '-j12'],
-                              cwd=build, env=toolchain.env)
-        subprocess.check_call(['/usr/bin/make', '--quiet', self.install_target] + destdir,
-                              cwd=build, env=toolchain.env)
+        MakeProject.build(self, toolchain, build)

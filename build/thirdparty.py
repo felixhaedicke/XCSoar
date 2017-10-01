@@ -104,7 +104,8 @@ elif target == 'ANDROID':
     ]
 else:
     thirdparty_libs = [
-        glibc,
+        musl,
+        libcxx,
         zlib,
         freetype,
         curl,

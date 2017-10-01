@@ -15,6 +15,14 @@ LIBCXX_CXXFLAGS = -nostdinc++ \
     LIBCXX_LDADD += $(ANDROID_NDK)/sources/cxx-stl/llvm-libc++/libs/$(ANDROID_ABI3)/libunwind.a
   endif
 
+else ifeq ($(TARGET_IS_KOBO),y)
+# For Kobo, we compile our own libc++ (see thirdparty build).
+LIBCXX_CXXFLAGS += -isystem $(THIRDPARTY_LIBS_ROOT)/include/c++/v1
+LIBCXX_LDLIBS += $(THIRDPARTY_LIBS_ROOT)/lib/libc++.a
+# In this environment, libstdc++ is still used for low-level functions (unwind,
+# cxxabi...). So we need to link against both, and use the
+# --allow-multiple-definition linker flag.
+LIBCXX_LDFLAGS += -Wl,--allow-multiple-definition
 else
 LIBCXX_CXXFLAGS += -stdlib=libc++
 LIBCXX_LDFLAGS += -stdlib=libc++

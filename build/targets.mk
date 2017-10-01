@@ -518,6 +518,7 @@ endif
 
 ifeq ($(TARGET_IS_KOBO),y)
   TARGET_CPPFLAGS += -DKOBO
+  LIBCXX = y
 endif
 
 ifeq ($(TARGET),ANDROID)
@@ -598,12 +599,7 @@ ifeq ($(HOST_IS_ARM)$(TARGET_HAS_MALI),ny)
 endif
 
 ifeq ($(TARGET_IS_KOBO),y)
-  TARGET_LDFLAGS += -static-libstdc++
-
-  # use our glibc version and its ld.so on the Kobo, not the one from
-  # the stock Kobo firmware, as it may be incompatible
-  TARGET_LDFLAGS += -Wl,--dynamic-linker=/opt/xcsoar/lib/ld-linux-armhf.so.3
-  TARGET_LDFLAGS += -Wl,--rpath=/opt/xcsoar/lib
+  TARGET_LDFLAGS += -static -specs=$(abspath $(THIRDPARTY_LIBS_ROOT)/lib/musl-gcc.specs)
 endif
 
 ifeq ($(TARGET),ANDROID)

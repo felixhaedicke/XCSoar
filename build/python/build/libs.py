@@ -9,6 +9,7 @@ from build.curl import CurlProject
 from build.libpng import LibPNGProject
 from build.sdl2 import SDL2Project
 from build.lua import LuaProject
+from build.libjpegturbo import LibJpegTurboProject
 
 glibc = AutotoolsProject(
     'http://mirror.netcologne.de/gnu/libc/glibc-2.23.tar.xz',
@@ -153,7 +154,7 @@ libpng = LibPNGProject(
     ]
 )
 
-libjpeg = AutotoolsProject(
+libjpeg = LibJpegTurboProject(
     'http://downloads.sourceforge.net/project/libjpeg-turbo/1.5.2/libjpeg-turbo-1.5.2.tar.gz',
     'http://sourceforge.mirrorservice.org/l/li/libjpeg-turbo/1.5.2/libjpeg-turbo-1.5.2.tar.gz',
     '9098943b270388727ae61de82adec73cf9f0dbb240b3bc8b172595ebf405b528',

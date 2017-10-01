@@ -1,0 +1,17 @@
+diff -Nuar boost_1_65_0.orig/boost/core/demangle.hpp boost_1_65_0/boost/core/demangle.hpp
+--- boost_1_65_0.orig/boost/core/demangle.hpp	2017-09-24 21:29:35.724781685 +0200
++++ boost_1_65_0/boost/core/demangle.hpp	2017-09-24 21:37:59.120652918 +0200
+@@ -22,7 +22,12 @@
+ // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63662
+ #if defined( __has_include ) && (!defined( BOOST_GCC ) || (__GNUC__ + 0) >= 5)
+ # if __has_include(<cxxabi.h>)
+-#  define BOOST_CORE_HAS_CXXABI_H
++// When using the libc++ library, only libc++abi's cxxabi.h seems to be compatible.
++// At least libstdc++'s cxxabi.h is not compatible.
++// Check for presence of __cxxabi_config.h to find out if we have libc++abi.
++#  if ( !defined( _LIBCPP_VERSION ) || __has_include(<__cxxabi_config.h>) )
++#    define BOOST_CORE_HAS_CXXABI_H
++#  endif
+ # endif
+ #elif defined( __GLIBCXX__ ) || defined( __GLIBCPP__ )
+ # define BOOST_CORE_HAS_CXXABI_H

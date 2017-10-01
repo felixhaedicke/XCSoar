@@ -6,7 +6,6 @@ from build.cmake import CMakeProject
 from build.openssl import OpenSSLProject
 from build.freetype import FreeTypeProject
 from build.curl import CurlProject
-from build.libpng import LibPNGProject
 from build.sdl2 import SDL2Project
 from build.lua import LuaProject
 from build.libjpegturbo import LibJpegTurboProject
@@ -144,13 +143,14 @@ proj = AutotoolsProject(
     autogen=True,
 )
 
-libpng = LibPNGProject(
+libpng = CMakeProject(
     'ftp://ftp.simplesystems.org/pub/libpng/png/src/libpng16/libpng-1.6.32.tar.xz',
     'http://downloads.sourceforge.net/project/libpng/libpng16/1.6.32/libpng-1.6.32.tar.xz',
     'c918c3113de74a692f0a1526ce881dc26067763eb3915c57ef3a0f7b6886f59b',
     'lib/libpng.a',
     [
-        '--disable-shared', '--enable-static',
+        '-DPNG_SHARED=off',
+        '-DPNG_ARM_NEON=on',
     ]
 )
 

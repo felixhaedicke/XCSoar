@@ -2,6 +2,7 @@ from os.path import abspath
 
 from build.zlib import ZlibProject
 from build.autotools import AutotoolsProject
+from build.cmake import CMakeProject
 from build.openssl import OpenSSLProject
 from build.freetype import FreeTypeProject
 from build.curl import CurlProject
@@ -36,6 +37,18 @@ musl = AutotoolsProject(
         '--disable-shared',
     ],
     patches=abspath('lib/musl/patches'),
+)
+
+libcxx = CMakeProject(
+    'http://releases.llvm.org/5.0.0/libcxx-5.0.0.src.tar.xz',
+    'http://distfiles.gentoo.org/distfiles/libcxx-5.0.0.src.tar.xz',
+    'eae5981e9a21ef0decfcac80a1af584ddb064a32805f95a57c7c83a5eb28c9b1',
+    'include/c++/v1/__config',
+    [
+        '-DLIBCXX_HAS_MUSL_LIBC=1', # libc++ is currently only used with musl
+        '-DLIBCXX_ENABLE_SHARED=0',
+        '-DLIBCXX_ENABLE_EXPERIMENTAL_LIBRARY=0',
+    ],
 )
 
 openssl = OpenSSLProject(

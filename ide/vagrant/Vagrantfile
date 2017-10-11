@@ -92,6 +92,11 @@ then
   rm /tmp/android-ndk-${ANDROID_NDK_VERSION}-linux-x86_64.zip
 fi
 
+cd
+git clone -o host /xcsoar-src
+cd xcsoar-src
+git remote add master https://github.com/XCSoar/XCSoar.git
+
 SCRIPT
 
 Vagrant.configure("2") do |config|

@@ -45,11 +45,11 @@ Copyright_License {
 #define HAVE_OES_MAPBUFFER
 #endif
 
-#if defined(HAVE_MALI) || defined(WIN32) || (defined(HAVE_GLES) && (defined(MESA_KMS) || defined(USE_X11)))
+#if defined(DYNAMIC_EGL_PLATFORM_DRIVER) || defined(WIN32) || (defined(HAVE_GLES) && (defined(USE_CONSOLE) || defined(USE_X11)))
 #define HAVE_DYNAMIC_MAPBUFFER
 #endif
 
-#if defined(USE_VIDEOCORE) || defined(HAVE_MALI) || defined(MESA_KMS)
+#if defined(USE_CONSOLE)
 #define DRAW_MOUSE_CURSOR
 #endif
 

@@ -35,8 +35,26 @@ Copyright_License {
 #define Display X11Display
 #endif
 
-#ifdef MESA_KMS
+#ifdef USE_CONSOLE
+
+#ifdef DYNAMIC_EGL_PLATFORM_DRIVER
+/* For ARM (currently not including AARCH64 builds), we support EGL platforms
+ * which use a proprietary plaform API instead of Mesa's GBM. This includes
+ * Mali and Raspbery Pi's VideoCore legacy driver.
+ * On these platforms, required userspace libraries for preparing the EGL
+ * are loaded dynamically using dlopen().
+ * For all other target platforms, there is currently only the Mesa GBM based
+ * driver, which is linked in a traditional way.
+*/
+
+/* This allows us to use the Mesa EGL headers for all console based EGL
+ * implmentations, even for non-Mesa drivers. */
+#define MESA_EGL_NO_X11_HEADERS
+
+#else
 #include <gbm.h>
+#endif
+
 #endif
 
 #include <EGL/egl.h>

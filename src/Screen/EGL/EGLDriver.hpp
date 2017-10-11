@@ -32,16 +32,38 @@ Copyright_License {
 
 #include <assert.h>
 
-#ifdef USE_VIDEOCORE
-#include <bcm_host.h>
+#ifdef DYNAMIC_EGL_PLATFORM_DRIVER
+
+// === BEGIN type definitions for the VideoCore EGL platform
+using DISPMANX_DISPLAY_HANDLE_T = uint32_t;
+using DISPMANX_UPDATE_HANDLE_T = uint32_t;
+using DISPMANX_ELEMENT_HANDLE_T = uint32_t;
+
+struct EGL_DISPMANX_WINDOW_T {
+   DISPMANX_ELEMENT_HANDLE_T element;
+   int width, height;
+};
+// === END type definitions for the VideoCore EGL platform
+
+// === BEGIN type definitions for the MALI EGL platform
+struct mali_native_window {
+	unsigned short width;
+	unsigned short height;
+};
+// === END type definitions for the MALI EGL platform
+
 #endif
 
-#ifdef MESA_KMS
 #include <drm_mode.h>
-#endif
 
 class EGLDriver final {
 public:
+  enum class Platform {
+    GBM,
+    VIDEOCORE,
+    MALI,
+  };
+
   enum Status {
     UNINITIALISED,
     INITIALISED,
@@ -52,17 +74,23 @@ public:
 private:
   Status current_status = Status::UNINITIALISED;
 
-#ifdef USE_VIDEOCORE
-  /* for Raspberry Pi */
+#ifdef DYNAMIC_EGL_PLATFORM_DRIVER
+  Platform platform;
+
+  // === BEGIN private members for the VideoCore EGL platform
   DISPMANX_DISPLAY_HANDLE_T vc_display;
   DISPMANX_UPDATE_HANDLE_T vc_update;
   DISPMANX_ELEMENT_HANDLE_T vc_element;
   EGL_DISPMANX_WINDOW_T vc_window;
+  // === END private members for the VideoCore EGL platform
 
-  void InitVideoCore() noexcept;
-#elif defined(HAVE_MALI)
+  // === BEGIN private members for the MALI EGL platform
   struct mali_native_window mali_native_window;
-#elif defined(MESA_KMS)
+  // === END private members for the MALI EGL platform
+#else
+  static constexpr Platform platform = Platform::GBM;
+#endif
+
   struct gbm_device *gbm_native_display;
   struct gbm_surface *gbm_native_window;
 
@@ -77,7 +105,6 @@ private:
   bool CreateDRM(const char *dri_device) noexcept;
   void DestroyDRM() noexcept;
   void SpecificFlipDRM() noexcept;
-#endif
 
 public:
   EGLDriver() = default;
@@ -88,48 +115,66 @@ public:
     assert(Status::DESTROYED == current_status);
   }
 
+#ifdef DYNAMIC_EGL_PLATFORM_DRIVER
+  void Init() noexcept;
+#else
   void Init() noexcept {
-#ifdef USE_VIDEOCORE
-    InitVideoCore();
-#endif
     current_status = Status::INITIALISED;
   }
+#endif
 
   void CreateDisplayAndWindow(PixelSize new_size, bool full_screen,
                               bool resizable);
   void DestroyDisplayAndWindow() noexcept {
     assert(Status::CREATED_DISPLAY_AND_WINDOW == current_status);
-#ifdef MESA_KMS
-    DestroyDRM();
-#endif
+    if (Platform::GBM == platform)
+      DestroyDRM();
     current_status = Status::DESTROYED;
   }
 
   void SpecificFlip() noexcept {
-#ifdef MESA_KMS
-    SpecificFlipDRM();
-#endif
+    if (Platform::GBM == platform)
+      SpecificFlipDRM();
   }
 
   EGLNativeDisplayType GetNativeDisplay() {
     assert(Status::CREATED_DISPLAY_AND_WINDOW == current_status);
-#ifdef MESA_KMS
-    return gbm_native_display;
-#else
-    return EGL_DEFAULT_DISPLAY;
-#endif
+    if (Platform::GBM != platform)
+      return EGL_DEFAULT_DISPLAY;
+    else
+      return gbm_native_display;
   }
 
   EGLNativeWindowType GetNativeWindow() {
     assert(Status::CREATED_DISPLAY_AND_WINDOW == current_status);
-#ifdef USE_VIDEOCORE
-    return &vc_window;
-#elif defined(HAVE_MALI)
-    return &mali_native_window;
-#elif defined(MESA_KMS)
+#ifdef DYNAMIC_EGL_PLATFORM_DRIVER
+    switch (platform) {
+    case Platform::GBM:
+      static_assert(sizeof(EGLNativeWindowType) == sizeof(gbm_native_window));
+      return reinterpret_cast<EGLNativeWindowType>(gbm_native_window);
+
+    case Platform::VIDEOCORE:
+      static_assert(sizeof(EGLNativeWindowType) == sizeof(&vc_window));
+      return reinterpret_cast<EGLNativeWindowType>(&vc_window);
+
+    case Platform::MALI:
+      static_assert(sizeof(EGLNativeWindowType) == sizeof(&mali_native_window));
+      return reinterpret_cast<EGLNativeWindowType>(&mali_native_window);
+    }
+#else
     return gbm_native_window;
 #endif
   }
+
+#ifdef DYNAMIC_EGL_PLATFORM_DRIVER
+  Platform GetPlatform() const {
+    assert((Status::INITIALISED == current_status) ||
+        (Status::CREATED_DISPLAY_AND_WINDOW == current_status));
+    return platform;
+  }
+#endif
+
+  PixelSize GetDisplaySize();
 };
 
 extern EGLDriver *global_egl_driver;

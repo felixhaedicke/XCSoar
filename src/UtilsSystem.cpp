@@ -46,8 +46,8 @@ Copyright_License {
 #include <windows.h>
 #endif
 
-#ifdef USE_VIDEOCORE
-#include <bcm_host.h>
+#ifdef DYNAMIC_EGL_PLATFORM_DRIVER
+#include "Screen/EGL/EGLDriver.hpp"
 #endif
 
 /**
@@ -101,11 +101,15 @@ SystemWindowSize()
   return { width, height };
 #elif defined(ANDROID)
   return native_view->GetSize();
-#elif defined(USE_VIDEOCORE)
-  uint32_t width, height;
-  return graphics_get_display_size(0, &width, &height) >= 0
-    ? PixelSize(width, height)
-    : PixelSize(640, 480);
+#elif defined(DYNAMIC_EGL_PLATFORM_DRIVER)
+  assert(nullptr != global_egl_driver);
+  return global_egl_driver->GetDisplaySize();
+  /*if (EGLDriver::Platform::VIDEOCORE == global_egl_driver->GetPlatform()) {
+    uint32_t width, height;
+    return graphics_get_display_size(0, &width, &height) >= 0
+      ? PixelSize(width, height)
+      : PixelSize(640, 480);
+  }*/
 #else
   /// @todo implement this properly for SDL/UNIX
   return { CommandLine::width, CommandLine::height };

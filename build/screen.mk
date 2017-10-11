@@ -141,7 +141,6 @@ SCREEN_SOURCES += \
 	$(SCREEN_SRC_DIR)/Custom/ResourceBitmap.cpp \
 	$(SCREEN_SRC_DIR)/TTY/TopCanvas.cpp \
 	$(SCREEN_SRC_DIR)/EGL/Init.cpp \
-	$(SCREEN_SRC_DIR)/EGL/EGLDriver.cpp \
 	$(SCREEN_SRC_DIR)/EGL/TopCanvas.cpp \
 	$(SCREEN_SRC_DIR)/FB/Window.cpp \
 	$(SCREEN_SRC_DIR)/FB/TopWindow.cpp \

@@ -34,6 +34,7 @@ Copyright_License {
 #include "Math/Point2D.hpp"
 #include "Asset.hpp"
 #include "DisplayOrientation.hpp"
+#include "LogFile.hpp"
 
 #ifdef USE_EGL
 #include "Screen/EGL/System.hpp"
@@ -235,6 +236,10 @@ CheckStencil()
 void
 OpenGL::SetupContext()
 {
+  LogFormat("OpenGL renderer: %s", glGetString(GL_RENDERER));
+  LogFormat("OpenGL vendor: %s", glGetString(GL_VENDOR));
+  LogFormat("OpenGL version: %s", glGetString(GL_VERSION));
+
   texture_non_power_of_two = SupportsNonPowerOfTwoTextures();
 
 #ifdef HAVE_OES_DRAW_TEXTURE

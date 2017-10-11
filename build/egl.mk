@@ -48,22 +48,18 @@ EGL_CPPFLAGS =
 EGL_FEATURE_CPPFLAGS = -DUSE_EGL
 EGL_LDLIBS = -lEGL
 
-ifeq ($(TARGET_IS_PI),y)
-# Raspberry Pi detected
-EGL_FEATURE_CPPFLAGS += -DUSE_VIDEOCORE
-EGL_CPPFLAGS += -isystem $(PI)/opt/vc/include -isystem $(PI)/opt/vc/include/interface/vcos/pthreads
-EGL_CPPFLAGS += -isystem $(PI)/opt/vc/include/interface/vmcs_host/linux
-EGL_LDLIBS += -L$(PI)/opt/vc/lib -lvchostif -lvchiq_arm -lvcos -lbcm_host
-USE_CONSOLE = y
-else ifeq ($(TARGET_HAS_MALI),y)
-EGL_FEATURE_CPPFLAGS += -DHAVE_MALI
+HAVE_DYNAMIC_EGL_PLATFORM_DRIVER = $(call bool_or,$($(TARGET_IS_PI)),$(TARGET_HAS_MALI))
+
+ifeq ($(HAVE_DYNAMIC_EGL_PLATFORM_DRIVER),y)
+$(eval $(call pkg-config-library,DRM,libdrm))
+EGL_CPPFLAGS += $(DRM_CPPFLAGS)
+EGL_FEATURE_CPPFLAGS += -DDYNAMIC_EGL_PLATFORM_DRIVER
 USE_CONSOLE = y
 else ifeq ($(ENABLE_MESA_KMS),y)
 $(eval $(call pkg-config-library,DRM,libdrm))
 $(eval $(call pkg-config-library,GBM,gbm))
-EGL_FEATURE_CPPFLAGS += -DMESA_KMS
 EGL_CPPFLAGS += $(DRM_CPPFLAGS) $(GBM_CPPFLAGS)
-EGL_LDLIBS += $(GBM_LDLIBS)
+EGL_LDLIBS += $(DRM_LDLIBS) $(GBM_LDLIBS)
 USE_CONSOLE = y
 else ifeq ($(USE_WAYLAND),y)
 EGL_CPPFLAGS += $(WAYLAND_CPPFLAGS)

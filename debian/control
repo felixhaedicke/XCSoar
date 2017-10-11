@@ -2,9 +2,8 @@ Source: xcsoar
 Section: misc
 Priority: extra
 Maintainer: Max Kellermann <max.kellermann@gmail.com>
-Build-Depends: debhelper (>= 9),
- g++ (>= 4:4.6),
- libraspberrypi-dev | libegl1-mesa-dev | libsdl1.2-dev,
+Build-Depends: debhelper (>= 9), g++ (>= 4:5),
+ libegl1-mesa-dev | libsdl2-dev | libraspberrypi-dev,
  libfreetype6-dev,
  libgl-dev,
  libpng-dev, libjpeg-dev,
@@ -12,15 +11,18 @@ Build-Depends: debhelper (>= 9),
  libasound2-dev,
  libcurl-dev,
  liblua5.2-dev,
+ libinput-dev,
+ libcurl4-openssl-dev | libcurl4-gnutls-dev | libcurl4-nss-dev,
  librsvg2-bin, imagemagick (>= 7:6.4), xsltproc,
  ffmpeg,
- gettext
+ pkg-config,
+ gettext,
+ python3,
+ quilt
 Build-Depends-Indep:  texlive, texlive-latex-extra,
  texlive-luatex,
- texlive-lang-english | texlive-lang-ukenglish,
  texlive-lang-german, texlive-lang-french,
  texlive-lang-polish, texlive-lang-portuguese,
- latex-xcolor, pgf,
  liblocale-po-perl, libio-captureoutput-perl
 Standards-Version: 3.9.1.0
 Homepage: http://www.xcsoar.org/

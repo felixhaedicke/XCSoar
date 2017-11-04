@@ -221,12 +221,10 @@ TopCanvas::CreateEGL(EGLNativeDisplayType native_display,
 
   static constexpr EGLint attributes[] = {
     EGL_STENCIL_SIZE, 1,
-#ifdef MESA_KMS
-    EGL_RED_SIZE, 1,
-    EGL_GREEN_SIZE, 1,
-    EGL_BLUE_SIZE, 1,
-    EGL_ALPHA_SIZE, 1,
-#endif
+    EGL_RED_SIZE, 8,
+    EGL_GREEN_SIZE, 8,
+    EGL_BLUE_SIZE, 8,
+    EGL_ALPHA_SIZE, 8,
     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
     EGL_RENDERABLE_TYPE, GetRenderableType(),
     EGL_NONE

@@ -43,9 +43,7 @@ Copyright_License {
 #include "Screen/EGL/System.hpp"
 
 #ifdef MESA_KMS
-#include <drm.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
+#include <drm_mode.h>
 #endif
 #endif
 
@@ -104,20 +102,15 @@ class TopCanvas
 #elif defined(HAVE_MALI)
   struct mali_native_window mali_native_window;
 #elif defined(MESA_KMS)
-  struct gbm_device *native_display;
-  struct gbm_surface *native_window;
+  struct gbm_device *native_display = nullptr;
+  struct gbm_surface *native_window = nullptr;
 
-  int dri_fd;
+  int dri_fd = -1;
 
   struct gbm_bo *current_bo;
 
-  drmEventContext evctx;
-
-  drmModeConnector *connector;
-  drmModeEncoder *encoder;
-  drmModeModeInfo mode;
-
-  drmModeCrtc* saved_crtc;
+  uint32_t drm_connector_id;
+  drm_mode_crtc drm_orig_crtc;
 #endif
 
   EGLDisplay display;

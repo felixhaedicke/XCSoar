@@ -64,11 +64,16 @@ else ifeq ($(TARGET_HAS_MALI),y)
 EGL_FEATURE_CPPFLAGS += -DHAVE_MALI
 USE_CONSOLE = y
 else ifeq ($(ENABLE_MESA_KMS),y)
-$(eval $(call pkg-config-library,DRM,libdrm))
-$(eval $(call pkg-config-library,GBM,gbm))
 EGL_FEATURE_CPPFLAGS += -DMESA_KMS
-EGL_CPPFLAGS += $(DRM_CPPFLAGS) $(GBM_CPPFLAGS)
-EGL_LDLIBS += $(DRM_LDLIBS) $(GBM_LDLIBS)
+$(eval $(call pkg-config-library,GBM,gbm))
+EGL_CPPFLAGS += $(GBM_CPPFLAGS)
+EGL_LDLIBS += $(GBM_LDLIBS)
+# Although libdrm is not used any more, ist still needed at compile time,
+# because we need the Linux kernel DRM data type declarations from the libdrm
+# headers. This could normally be done using the UAPI kernel headers, but
+# these are not distributed in all Linux distributions.
+$(eval $(call pkg-config-library,DRM,libdrm))
+EGL_CPPFLAGS += $(DRM_CPPFLAGS)
 USE_CONSOLE = y
 else ifeq ($(USE_WAYLAND),y)
 EGL_CPPFLAGS += $(WAYLAND_CPPFLAGS)

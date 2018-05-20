@@ -4,7 +4,8 @@
           android:installLocation="auto"
           android:versionCode="118"
           android:versionName="7.0_preview11">
-  <application android:icon="@drawable/icon" android:label="@string/app_name">
+  <application android:icon="@drawable/icon" android:label="@string/app_name" android:resizeableActivity="true" android:theme="@style/XCSoarTheme">
+    <meta-data android:name="android.max_aspect" android:value="3" />
     <activity android:name=".XCSoar"
               android:label="@string/app_name_testing"
               android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale"
@@ -29,7 +30,7 @@
     <service android:name=".MyService"/>
   </application>
 
-  <uses-sdk android:minSdkVersion="4" android:targetSdkVersion="22"/>
+  <uses-sdk android:minSdkVersion="4" android:targetSdkVersion="25"/>
   <uses-permission android:name="android.permission.BLUETOOTH"></uses-permission>
   <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"></uses-permission>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>

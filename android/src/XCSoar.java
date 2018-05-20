@@ -22,6 +22,7 @@
 
 package org.xcsoar;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.os.Bundle;
@@ -42,12 +43,15 @@ import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.content.ServiceConnection;
 import android.content.ComponentName;
+import android.content.pm.PackageManager;
 import android.util.Log;
 import android.provider.Settings;
 import android.view.View;
 
 public class XCSoar extends Activity {
   private static final String TAG = "XCSoar";
+
+  private static final int REQUEST_PERMISSIONS_CODE = 1908657;
 
   /**
    * Hack: this is set by onCreate(), to support the "testing"
@@ -60,6 +64,8 @@ public class XCSoar extends Activity {
   PowerManager.WakeLock wakeLock;
 
   BatteryReceiver batteryReceiver;
+
+  private boolean haveStoragePermission = false;
 
   @Override protected void onCreate(Bundle savedInstanceState) {
     if (serviceClass == null)
@@ -122,9 +128,40 @@ public class XCSoar extends Activity {
     tv.setText("Loading XCSoar...");
     setContentView(tv);
 
+    if (android.os.Build.VERSION.SDK_INT >= 23) {
+      requestPermissions(
+          new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                         Manifest.permission.ACCESS_FINE_LOCATION },
+          REQUEST_PERMISSIONS_CODE);
+    }
+
     batteryReceiver = new BatteryReceiver();
     registerReceiver(batteryReceiver,
                      new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                         int[] grantResults) {
+    if ((!haveStoragePermission) &&
+        (requestCode == REQUEST_PERMISSIONS_CODE) &&
+        (permissions != null) &&
+        (grantResults != null)) {
+      assert grantResults.length == grantResults.length;
+
+      for (int i = 0; i < permissions.length; ++i) {
+        if (Manifest.permission.WRITE_EXTERNAL_STORAGE.equals(permissions[i])) {
+          if (PackageManager.PERMISSION_GRANTED == grantResults[i]) {
+            haveStoragePermission = true;
+          } else {
+            TextView tv = new TextView(this);
+            tv.setText("Failed to get permission to access external storage");
+            setContentView(tv);
+          }
+          break;
+        }
+      }
+    }
   }
 
   private void quit() {
@@ -223,13 +260,15 @@ public class XCSoar extends Activity {
   @Override protected void onResume() {
     super.onResume();
 
-    startService(new Intent(this, serviceClass));
+    if (haveStoragePermission) {
+      startService(new Intent(this, serviceClass));
 
-    if (nativeView != null)
-      nativeView.onResume();
-    else
-      initSDL();
-    getHapticFeedbackSettings();
+      if (nativeView != null)
+        nativeView.onResume();
+      else
+        initSDL();
+      getHapticFeedbackSettings();
+    }
   }
 
   @Override protected void onDestroy()

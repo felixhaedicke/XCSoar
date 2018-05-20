@@ -326,9 +326,9 @@ endif
 ifeq ($(TARGET),ANDROID)
   ANDROID_NDK ?= $(HOME)/opt/android-ndk-r15c
 
-  ANDROID_SDK_PLATFORM = android-22
-  ANDROID_NDK_PLATFORM = android-19
-  ANDROID_NDK_PLATFORM_64 = android-21
+  ANDROID_SDK_PLATFORM = android-P
+  ANDROID_NDK_PLATFORM = android-26
+  ANDROID_NDK_PLATFORM_64 = android-26
 
   ANDROID_ARCH = arm
   ANDROID_ABI2 = arm-linux-androideabi
@@ -562,6 +562,8 @@ endif
 
 ifeq ($(TARGET),ANDROID)
   TARGET_CPPFLAGS += --sysroot=$(ANDROID_TARGET_ROOT)
+  TARGET_CPPFLAGS += -isystem $(ANDROID_NDK)/sysroot/usr/include
+  TARGET_CPPFLAGS += -isystem $(ANDROID_NDK)/sysroot/usr/include/$(HOST_TRIPLET)
   TARGET_CPPFLAGS += -DANDROID
   CXXFLAGS += -D__STDC_VERSION__=199901L
 

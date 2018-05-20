@@ -22,6 +22,7 @@
 
 package org.xcsoar;
 
+import android.content.Context;
 import android.app.Service;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -31,6 +32,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.Binder;
 import android.util.Log;
+import java.lang.reflect.Method;
 
 /**
  * All this Service implementation does is put itself in foreground.
@@ -69,19 +71,35 @@ public class MyService extends Service {
   private void onStart() {
     /* add an icon to the notification area while XCSoar runs, to
        remind the user that we're sucking his battery empty */
-    Notification notification = new Notification(R.drawable.notification_icon, null,
-                                                 System.currentTimeMillis());
-    Intent intent2 = new Intent(this, mainActivityClass);
-    PendingIntent contentIntent =
-      PendingIntent.getActivity(this, 0, intent2, 0);
-    notification.setLatestEventInfo(this, "XCSoar", "XCSoar is running",
-                                    contentIntent);
-    notification.flags |= Notification.FLAG_ONGOING_EVENT;
+   Intent intent2 = new Intent(this, mainActivityClass);
+   PendingIntent contentIntent =
+     PendingIntent.getActivity(this, 0, intent2, 0);
 
-    notificationManager.notify(1, notification);
+    Notification notification;
+    if (android.os.Build.VERSION.SDK_INT >= 11) {
+      Notification.Builder builder = new Notification.Builder(this)
+          .setSmallIcon(R.drawable.notification_icon)
+          .setContentTitle("XCSoar")
+          .setContentText("XCSoar is running")
+          .setContentIntent(contentIntent);
+      notification = builder.build();
+    } else {
+      try {
+        Method setLatestEventInfoMethod = Notification.class.getMethod("setLatestEventInfo", Context.class, CharSequence.class, CharSequence.class, PendingIntent.class);
+        notification = new Notification(R.drawable.notification_icon, null, System.currentTimeMillis());
+        setLatestEventInfoMethod.invoke(notification, this, "XCSoar", "XCSoar is running", contentIntent);
+      } catch (Exception e) {
+        notification = null;
+      }
+    }
 
-    if (Build.VERSION.SDK_INT >= 5)
-      APILevel5.startForeground(this, 1, notification);
+    if (notification != null) {
+      notification.flags |= Notification.FLAG_ONGOING_EVENT;
+      notificationManager.notify(1, notification);
+
+      if (Build.VERSION.SDK_INT >= 5)
+        APILevel5.startForeground(this, 1, notification);
+    }
   }
 
   @Override public void onStart(Intent intent, int startId) {

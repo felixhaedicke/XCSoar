@@ -23,9 +23,12 @@ Copyright_License {
 
 #include "AudioConfigPanel.hpp"
 
+#include "Audio/Features.hpp"
+
+#ifdef HAVE_VOLUME_CONTROLLER
+
 #include "Interface.hpp"
 #include "UIGlobals.hpp"
-#include "Audio/Features.hpp"
 #include "Audio/GlobalVolumeController.hpp"
 #include "Audio/VolumeController.hpp"
 #include "Language/Language.hpp"
@@ -38,11 +41,9 @@ enum ControlIndex {
   MasterVolume,
 };
 
-
 class AudioConfigPanel final : public RowFormWidget {
 public:
   AudioConfigPanel() : RowFormWidget(UIGlobals::GetDialogLook()) {
-    assert(HaveVolumeController());
   }
 
 public:
@@ -80,3 +81,5 @@ CreateAudioConfigPanel()
 {
   return new AudioConfigPanel();
 }
+
+#endif

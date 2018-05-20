@@ -38,7 +38,7 @@
 #include <windows.h>
 #endif
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__ANDROID__)
 
 static int
 ioprio_set(int which, int who, int ioprio)
@@ -78,7 +78,9 @@ SetThreadIdlePriority()
   sched_setscheduler(0, SCHED_IDLE, &sched_param);
 #endif
 
+#ifndef __ANDROID__
   ioprio_set_idle();
+#endif
 
 #elif defined(WIN32)
   SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
